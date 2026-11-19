@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>24</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;900&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
+<style>
+/* =========================================================
+   颜色 / 字体 —— 想换风格改这里
+   ========================================================= */
+:root{
+  --night:#0b1626;
+  --night2:#13253d;
+  --sea:#1d3b5c;
+  --flame:#ffb347;
+  --flame2:#ff7a3d;
+  --paper:#f6ecd6;
+  --ink:#3a2a1c;
+  --wood:#7b4a29;
+  --wood-dark:#4e2d17;
+  --wood-light:#a3683c;
+  --brass:#d9a441;
+  --serif:"Noto Serif SC","Songti SC","STSong",serif;
+  --hand:"Ma Shan Zheng","Kaiti SC","STKaiti",cursive;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--night);color:var(--paper);font-family:var(--serif)}
+body{user-select:none;-webkit-user-select:none}
+
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:24px;opacity:0;pointer-events:none;transition:opacity .9s ease}
+.screen.active{opacity:1;pointer-events:auto}
+
+/* 星空背景 */
+#stars{position:fixed;inset:0;z-index:-1}
+
+.btn{font-family:var(--serif);font-size:16px;letter-spacing:.15em;color:var(--night);background:var(--paper);
+  border:none;border-radius:999px;padding:14px 30px;cursor:pointer;box-shadow:0 6px 24px rgba(0,0,0,.35);
+  transition:transform .15s}
+.btn:active{transform:scale(.96)}
+.btn.ghost{background:transparent;color:var(--paper);border:1px solid rgba(246,236,214,.45);box-shadow:none}
+
+.small{font-size:13px;opacity:.7;letter-spacing:.08em;line-height:1.8;text-align:center}
+
+/* ---------- 倒计时 ---------- */
+#lock .big{font-size:64px;font-weight:900;letter-spacing:.05em;margin:18px 0 6px;color:var(--flame)}
+#lock .units{display:flex;gap:18px;margin:14px 0 26px}
+#lock .units div{text-align:center}
+#lock .units b{display:block;font-size:30px;font-weight:600}
+#lock .units span{font-size:12px;opacity:.6}
+
+/* ---------- 开场 ---------- */
+#intro .compass{width:120px;height:120px;animation:spin 40s linear infinite;opacity:.85;margin-bottom:28px}
+@keyframes spin{to{transform:rotate(360deg)}}
+#intro h1{font-family:var(--hand);font-weight:400;font-size:44px;letter-spacing:.08em;margin-bottom:10px}
+#intro .date{font-size:14px;letter-spacing:.5em;opacity:.65;margin-bottom:40px}
+
+/* ---------- 蛋糕 ---------- */
+#cake{transition:background 1.6s ease}
+#cake.lit{background:radial-gradient(ellipse at 50% 55%,#3a2614 0%,#160f0a 55%,#070605 100%)}
+#cake.dark{background:radial-gradient(ellipse at 50% 55%,#0e1a2b 0%,#070d16 70%)}
+#cake.party{background:radial-gradient(ellipse at 50% 45%,#2a4a6e 0%,#13253d 60%,#0b1626 100%)}
+#cakeSvg{width:min(92vw,420px);height:auto;overflow:visible}
+#cakeTop{position:absolute;top:8%;left:0;right:0;text-align:center;padding:0 24px}
+#cakeTop .count{font-size:14px;letter-spacing:.3em;opacity:.75}
+#cakeTop .msg{font-family:var(--hand);font-size:34px;margin-top:6px;min-height:46px;transition:opacity .6s}
+#cakeBottom{position:absolute;bottom:7%;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:12px;padding:0 24px}
+.meter{width:140px;height:4px;border-radius:4px;background:rgba(255,255,255,.12);overflow:hidden}
+.meter i{display:block;height:100%;width:0;background:var(--flame);transition:width .08s}
+
+.candle .flame{transform-box:fill-box;transform-origin:50% 100%;animation:flick .18s ease-in-out infinite alternate}
+.candle:nth-child(3n) .flame{animation-duration:.23s}
+.candle:nth-child(4n) .flame{animation-duration:.15s}
+@keyframes flick{from{transform:scale(1,1) skewX(-2deg)}to{transform:scale(.92,1.08) skewX(3deg)}}
+.candle .glow{transition:opacity .4s}
+.candle.out .flame{animation:none;transform:scale(0,.2);transition:transform .25s ease-in}
+.candle.out .glow{opacity:0}
+.smoke{fill:#cfc8c0;opacity:.0;animation:smoke 1.8s ease-out forwards}
+@keyframes smoke{0%{opacity:.55;transform:translate(0,0) scale(.6)}100%{opacity:0;transform:translate(var(--dx),-60px) scale(2.4)}}
+
+/* ---------- 抽屉柜 ---------- */
+#cabinet{justify-content:flex-start;padding-top:max(28px,env(safe-area-inset-top));overflow-y:auto}
+#cabinet header{text-align:center;margin-bottom:18px}
+#cabinet h2{font-family:var(--hand);font-weight:400;font-size:32px;letter-spacing:.06em}
+#cabinet .progress{font-size:13px;opacity:.7;letter-spacing:.2em;margin-top:6px}
+.chest{width:min(94vw,430px);padding:14px;border-radius:10px;
+  background:linear-gradient(180deg,var(--wood-light),var(--wood) 12%,var(--wood-dark));
+  box-shadow:0 20px 50px rgba(0,0,0,.55), inset 0 0 0 2px rgba(0,0,0,.25), inset 0 2px 0 rgba(255,255,255,.15)}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.drawer{position:relative;aspect-ratio:1.25/1;border:none;border-radius:4px;cursor:pointer;
+  font-family:var(--serif);color:#f3dfbf;
+  background:
+    repeating-linear-gradient(92deg,rgba(0,0,0,.06) 0 2px,transparent 2px 9px),
+    linear-gradient(180deg,#9a5f35,#7b4a29);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.35),inset 0 2px 0 rgba(255,255,255,.18),0 2px 0 rgba(0,0,0,.4);
+  transition:transform .35s cubic-bezier(.2,.9,.3,1.3),box-shadow .35s,filter .35s}
+.drawer .label{position:absolute;top:14%;left:0;right:0;font-size:12px;letter-spacing:.1em;opacity:.9}
+.drawer .label b{font-size:17px;font-weight:600}
+.drawer .handle{position:absolute;left:50%;bottom:20%;width:34%;height:7px;transform:translateX(-50%);
+  border-radius:6px;background:linear-gradient(180deg,#f2cf7c,var(--brass) 60%,#8f6720);
+  box-shadow:0 1px 2px rgba(0,0,0,.5)}
+.drawer:active{transform:scale(.95)}
+.drawer.opened{filter:brightness(.78) saturate(.8)}
+.drawer.opened .label::after{content:" ✓";font-size:11px}
+.drawer.pull{transform:translateY(-3px) scale(1.06);z-index:2;box-shadow:0 10px 18px rgba(0,0,0,.5)}
+.drawer.final{grid-column:span 4;aspect-ratio:auto;height:70px;
+  background:repeating-linear-gradient(92deg,rgba(0,0,0,.06) 0 2px,transparent 2px 9px),linear-gradient(180deg,#5c3519,#3e2210)}
+.drawer.final .label{top:50%;transform:translateY(-50%);font-size:14px;letter-spacing:.3em}
+.drawer.final .label b{font-size:22px;color:var(--brass)}
+.drawer.final .lock{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:20px}
+.drawer.final.unlocked{animation:glowPulse 1.6s ease-in-out infinite}
+.drawer.final.unlocked .lock{display:none}
+@keyframes glowPulse{0%,100%{box-shadow:0 0 0 1px rgba(0,0,0,.35),0 0 12px rgba(255,179,71,.35)}50%{box-shadow:0 0 0 1px rgba(0,0,0,.35),0 0 28px rgba(255,179,71,.85)}}
+.shake{animation:shake .45s}
+@keyframes shake{20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)}}
+#cabinet .tip{margin:18px 0 30px}
+
+/* ---------- 弹窗（抽屉内容） ---------- */
+#modal{position:fixed;inset:0;background:rgba(4,8,14,.72);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+  display:flex;align-items:center;justify-content:center;padding:22px;opacity:0;pointer-events:none;transition:opacity .35s;z-index:10}
+#modal.show{opacity:1;pointer-events:auto}
+.card{width:min(92vw,400px);max-height:86vh;overflow-y:auto;background:var(--paper);color:var(--ink);border-radius:6px;
+  padding:26px 24px 22px;box-shadow:0 30px 60px rgba(0,0,0,.5);transform:translateY(40px) scale(.96);
+  transition:transform .45s cubic-bezier(.2,.9,.3,1.2);position:relative;
+  background-image:radial-gradient(rgba(120,80,40,.07) 1px,transparent 1px);background-size:6px 6px}
+#modal.show .card{transform:none}
+.card .year{text-align:center;font-size:13px;letter-spacing:.5em;color:#8a6a48;margin-bottom:14px}
+.card .photo{width:100%;border-radius:3px;margin-bottom:16px;display:block;box-shadow:0 4px 14px rgba(0,0,0,.18);
+  border:6px solid #fff;transform:rotate(-1.2deg)}
+.card .ph{width:100%;aspect-ratio:4/3;border:2px dashed #c9b28f;border-radius:4px;display:flex;align-items:center;
+  justify-content:center;color:#a98d68;font-size:13px;margin-bottom:16px;text-align:center;padding:10px}
+.card .text{font-size:16px;line-height:2;white-space:pre-line}
+.card .close{display:block;margin:20px auto 0;font-family:var(--serif);background:none;border:1px solid #c9b28f;
+  color:#8a6a48;border-radius:999px;padding:8px 22px;font-size:14px;letter-spacing:.2em;cursor:pointer}
+
+/* 处方单样式 */
+.rx{border:1.5px solid #8a6a48;padding:16px 16px 12px;font-size:14px;line-height:1.9}
+.rx .hd{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1.5px solid #8a6a48;padding-bottom:6px;margin-bottom:10px}
+.rx .hd b{font-size:18px;letter-spacing:.3em}
+.rx .sym{font-size:28px;font-style:italic;font-weight:900;color:#a33b2b;line-height:1}
+.rx ul{list-style:none;margin:8px 0}
+.rx li{display:flex;justify-content:space-between;border-bottom:1px dotted #c9b28f;padding:3px 0}
+.rx li span:last-child{color:#8a6a48;font-size:13px}
+.rx .sign{text-align:right;margin-top:12px;font-family:var(--hand);font-size:22px;color:#a33b2b}
+.rx .stamp{display:inline-block;border:2px solid #a33b2b;color:#a33b2b;border-radius:50%;padding:8px 6px;font-size:11px;
+  transform:rotate(-14deg);margin-left:8px;letter-spacing:.1em}
+
+/* ---------- 信 ---------- */
+#letter{padding:0}
+#letter .paper{width:min(92vw,440px);max-height:84vh;overflow-y:auto;background:var(--paper);color:var(--ink);
+  padding:34px 28px 30px;border-radius:4px;box-shadow:0 30px 70px rgba(0,0,0,.55);
+  background-image:repeating-linear-gradient(180deg,transparent 0 33px,rgba(138,106,72,.18) 33px 34px);
+  background-position:0 22px}
+#letterText{font-family:var(--hand);font-size:22px;line-height:34px;white-space:pre-wrap;min-height:200px}
+#letterText .cursor{display:inline-block;width:2px;height:22px;background:var(--ink);vertical-align:middle;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+#letter .after{margin-top:22px;display:flex;justify-content:center;gap:10px;opacity:0;transition:opacity 1s}
+#letter .after.show{opacity:1}
+#letter .after .btn{font-size:13px;padding:10px 18px;background:var(--night);color:var(--paper)}
+
+#toast{position:fixed;left:50%;bottom:9%;transform:translateX(-50%) translateY(20px);background:rgba(246,236,214,.95);
+  color:var(--ink);padding:10px 18px;border-radius:999px;font-size:14px;opacity:0;transition:all .3s;z-index:20;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%)}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:15}
+</style>
+</head>
+<body>
+
+<canvas id="stars"></canvas>
+<canvas id="confetti"></canvas>
+
+<!-- ① 倒计时（12.14 之前打开会看到这里） -->
+<section class="screen" id="lock">
+  <div class="small">有一样东西，要等到那天才能打开</div>
+  <div class="big">12 · 14</div>
+  <div class="units">
+    <div><b id="cdD">0</b><span>天</span></div>
+    <div><b id="cdH">0</b><span>时</span></div>
+    <div><b id="cdM">0</b><span>分</span></div>
+    <div><b id="cdS">0</b><span>秒</span></div>
+  </div>
+  <div class="small">先别偷看 :)</div>
+</section>
+
+<!-- ② 开场 -->
+<section class="screen" id="intro">
+  <svg class="compass" viewBox="0 0 100 100" fill="none" stroke="#f6ecd6" stroke-width="1">
+    <circle cx="50" cy="50" r="46" opacity=".5"/>
+    <circle cx="50" cy="50" r="38" opacity=".3"/>
+    <path d="M50 6 L55 45 L50 50 L45 45Z" fill="#ffb347" stroke="none"/>
+    <path d="M50 94 L55 55 L50 50 L45 55Z" fill="#f6ecd6" stroke="none" opacity=".6"/>
+    <path d="M6 50 L45 45 L50 50 L45 55Z" fill="#f6ecd6" stroke="none" opacity=".6"/>
+    <path d="M94 50 L55 45 L50 50 L55 55Z" fill="#f6ecd6" stroke="none" opacity=".6"/>
+    <text x="50" y="18" text-anchor="middle" font-size="7" fill="#f6ecd6" stroke="none">N</text>
+  </svg>
+  <h1 id="introName"></h1>
+  <div class="date">2026 · 12 · 14</div>
+  <button class="btn" id="startBtn">点亮蜡烛</button>
+  <div class="small" style="margin-top:18px">建议打开声音 · 找个安静的地方</div>
+</section>
+
+<!-- ③ 蛋糕 -->
+<section class="screen dark" id="cake">
+  <div id="cakeTop">
+    <div class="count" id="candleCount">24 / 24</div>
+    <div class="msg" id="cakeMsg"></div>
+  </div>
+  <svg id="cakeSvg" viewBox="0 0 360 360">
+    <defs>
+      <radialGradient id="gGlow"><stop offset="0" stop-color="#ffcf7a" stop-opacity=".55"/><stop offset="1" stop-color="#ff9a3d" stop-opacity="0"/></radialGradient>
+      <linearGradient id="gFlame" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#ff6a2b"/><stop offset=".45" stop-color="#ffb347"/><stop offset="1" stop-color="#fff3c4"/></linearGradient>
+      <linearGradient id="gCake1" x1="0" x2="1"><stop offset="0" stop-color="#e9d2b0"/><stop offset=".5" stop-color="#fbeedb"/><stop offset="1" stop-color="#d8bd96"/></linearGradient>
+      <linearGradient id="gCake2" x1="0" x2="1"><stop offset="0" stop-color="#7fb2c9"/><stop offset=".5" stop-color="#b6dbe8"/><stop offset="1" stop-color="#6a9cb3"/></linearGradient>
+    </defs>
+    <ellipse cx="180" cy="306" rx="172" ry="30" fill="#2a2a33" opacity=".6"/>
+    <ellipse cx="180" cy="300" rx="165" ry="28" fill="#d9d4cc"/>
+    <!-- 下层：海蓝色 -->
+    <rect x="40" y="200" width="280" height="96" fill="url(#gCake2)"/>
+    <ellipse cx="180" cy="296" rx="140" ry="24" fill="url(#gCake2)"/>
+    <path d="M40 232 q17.5 14 35 0 t35 0 t35 0 t35 0 t35 0 t35 0 t35 0 t35 0" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".85"/>
+    <ellipse cx="180" cy="200" rx="140" ry="24" fill="#cfe8f0"/>
+    <!-- 上层：奶油色 -->
+    <rect x="82" y="130" width="196" height="70" fill="url(#gCake1)"/>
+    <ellipse cx="180" cy="200" rx="98" ry="17" fill="url(#gCake1)"/>
+    <ellipse cx="180" cy="130" rx="98" ry="17" fill="#fff8ec"/>
+    <text x="180" y="178" text-anchor="middle" font-family="Ma Shan Zheng, cursive" font-size="30" fill="#b77b4a">24</text>
+    <g id="candles"></g>
+  </svg>
+  <div id="cakeBottom">
+    <div class="meter" id="meter" style="display:none"><i id="meterBar"></i></div>
+    <button class="btn" id="micBtn">🎤 对着手机吹气</button>
+    <div class="small" id="cakeHint">也可以直接点蜡烛，一根根吹灭</div>
+    <button class="btn ghost" id="lazyBtn" style="font-size:13px;padding:9px 20px">懒得吹了，一键熄灭 💨</button>
+    <button class="btn" id="toCabinet" style="display:none">去打开抽屉 →</button>
+  </div>
+</section>
+
+<!-- ④ 抽屉柜 -->
+<section class="screen" id="cabinet">
+  <header>
+    <h2>24 个抽屉</h2>
+    <div class="progress" id="progress">0 / 23</div>
+  </header>
+  <div class="chest"><div class="grid" id="grid"></div></div>
+  <div class="small tip">每一岁一个抽屉<br>全部打开之后，最后一个才会解锁</div>
+</section>
+
+<!-- ⑤ 信 -->
+<section class="screen" id="letter">
+  <div class="paper" id="paper">
+    <img id="letterPhoto" alt="" style="display:none;width:100%;border:6px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.18);transform:rotate(-1deg);margin-bottom:22px">
+    <div id="letterText"></div>
+    <div class="after" id="letterAfter">
+      <button class="btn" id="replayBtn">再吹一次蜡烛</button>
+      <button class="btn" id="backBtn">回到抽屉</button>
+    </div>
+  </div>
+</section>
+
+<div id="modal"><div class="card" id="card"></div></div>
+<div id="toast"></div>
+
+<script>
+/* =========================================================
+   ✏️  CONFIG —— 你主要改这一块就行
+   照片放在 index.html 旁边的 photos/ 文件夹里，文件名对应下面的 photo
+   ========================================================= */
+const CONFIG = {
+  name: "黄亚",                // 开场、处方单里用到
+  callName: "亚亚",            // 信的开头怎么称呼她，可以改成你平时叫她的方式
+  from: "黄丹美淇",            // 落款
+  unlockAt: "2026-12-14T00:00:00+08:00",  // 这个时间之前打开只能看到倒计时；网址后加 ?preview 可跳过
+  music: "",                   // 可选：吹灭蜡烛后播放的音乐，比如 "music.mp3"，不要就留空
+
+  // 吹蜡烛过程中会轮流飘出来的话
+  cakeLines: ["许个愿吧", "再用力一点", "快好啦", "还剩最后几根"],
+  cakeDone: "生日快乐！",
+
+  // 1 岁 ~ 23 岁，共 23 个抽屉
+  // photos 可以放多张：photos: ["photos/a.jpg", "photos/b.jpg"]，不写就没有照片
+  drawers: [
+    { text: "你来到这个世界。\n据说哭声特别响亮——\n从那时候起就很有存在感了。" },
+    { text: "学会了说「不要」。\n这项技能你到现在都用得很熟练吧。" },
+    { text: "第一次对什么东西着迷。\n我猜是动画片，而且看得很认真。" },
+    { text: "有了第一个「最好的朋友」。\n希望你一直都被很多人喜欢着。" },
+    { text: "也许是第一次看到海。\n觉得它大得没有尽头。" },
+    { text: "背上书包上小学。\n那时候的你一定想不到，\n以后会有人给你写一个网页。" },
+    { text: "写字一笔一画。\n作业本上大概有很多小红花。" },
+    { text: "八岁。\n我猜你已经是会照顾别人的那种小孩了。" },
+    { text: "十岁之前的最后一年。\n愿那时的小朋友，现在也一直在你心里。" },
+    { text: "两位数了！\n世界一下子变大了一点。" },
+    { text: "第一次熬夜看完一整部动画。\n（猜对了吗？）" },
+    { text: "认识了一群在海上冒险的家伙。\n从此相信：只要有伙伴，哪里都能去。" },
+    { text: "上初中。\n开始有自己的小秘密。" },
+    { text: "十四岁。\n大概有过一段很中二、但很快乐的时光。" },
+    { text: "十五岁。\n第一次认真想「以后要成为什么样的人」。" },
+    { text: "十六岁。\n高中的风，教室的窗，写不完的卷子。" },
+    { text: "十七岁。\n累的时候也没有停下来。" },
+    { text: "成年了。\n从这一年开始，很多事都可以自己决定。" },
+    { text: "离开家，去更远的地方。\n第一次一个人面对很多事。" },
+    { text: "二十岁。\n听说二十岁的愿望会特别灵，\n不知道你许了什么。" },
+    { text: "二十一岁。\n一边长大，一边慢慢知道自己想要什么。" },
+    { text: "开始工作。\n跑医院、见客户、讲产品、赶路。\n很辛苦，也真的很厉害。" },
+    // 23 岁：认识的那一年 + 处方单（她做医药代表，这个抽屉专门给她）
+    {
+      type: "rx",
+      text: "去年生日，你闭着眼睛许了一个愿。\n\n2026 年 7 月 19 日下午 4:33，\n你在抖音上说：hi 姐姐，可以拥有微信好友位嘛。\n还没见过面，却已经聊了这么多。\n\n所以给你开一张方子 ↓",
+      photos: ["photo%202.jpg"],
+      diagnosis: "工作太拼 · 睡得太晚 · 太替别人着想",
+      items: [
+        ["开心", "每日三次，饭后"],
+        ["好好吃饭", "不许跳过午饭"],
+        ["睡够八小时", "睡前少刷抖音"],
+        ["练完记得拉伸", "不然会像我一样爆炸酸"],
+        ["想找人说话时", "随时找我，不限次数"],
+      ],
+      note: "疗程：24 岁一整年，可续方。",
+    },
+  ],
+
+  // 第 24 个抽屉：最后的信（{name} {from} {callName} 会自动替换）
+  letterPhoto: "photo1.jpg",   // 信最上面的一张照片，不要就留空 ""
+  letter:
+`{callName}：
+
+24 岁生日快乐！
+
+还记得 7 月 19 号吗？你在抖音上跑来说"hi 姐姐，可以拥有微信好友位嘛"。我当时的第一反应是：我的妈呀，我的荣幸。
+
+前面那 23 个抽屉，大部分是我猜的。毕竟你的前 23 年我都错过了，只能靠想象补上。猜错的地方，下次讲给我听。
+
+虽然我们还没见过面，但这几个月和你聊天，真的很开心。
+
+我知道你最近工作压力很大。医药代表真的不好做，每天跑医院、等医生、见客户、赶路，忙完一家又一家，还要把情绪收好，对每个人都客客气气的。你已经做得很好了，比你自己以为的还要好。
+
+所以祝你新的一年工作顺顺利利：拜访都能见到想见的人，指标轻轻松松完成，遇到的客户都讲道理，跑的每一趟都不白跑。累了就停下来歇一歇，没有什么比你自己更重要。
+
+忙归忙，也要好好吃饭、好好睡觉，处方单上写的要按时执行。还有，练得那么好就别再说自己"毫无痕迹"了。听话，别再低调了。
+
+希望 24 岁的你，想去的地方都能抵达，想见的人都能见到。
+
+也希望有一天，可以当面跟你说一次生日快乐。
+
+{from}
+2026.12.14`,
+};
+/* ========================= CONFIG 结束 ========================= */
+
+const $ = s => document.querySelector(s);
+const params = new URLSearchParams(location.search);
+const PREVIEW = params.has("preview");
+const fill = s => s.replaceAll("{name}", CONFIG.name).replaceAll("{from}", CONFIG.from).replaceAll("{callName}", CONFIG.callName || CONFIG.name);
+
+/* ---------- 屏幕切换 ---------- */
+function show(id){
+  document.querySelectorAll(".screen").forEach(s => s.classList.toggle("active", s.id === id));
+}
+function toast(msg){
+  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove("show"), 2200);
+}
+
+/* ---------- 星空 ---------- */
+(function stars(){
+  const c = $("#stars"), x = c.getContext("2d"); let pts = [];
+  function size(){
+    c.width = innerWidth * devicePixelRatio; c.height = innerHeight * devicePixelRatio;
+    pts = Array.from({length: 140}, () => ({x: Math.random()*c.width, y: Math.random()*c.height,
+      r: Math.random()*1.3*devicePixelRatio + .3, p: Math.random()*6.28}));
+  }
+  size(); addEventListener("resize", size);
+  (function loop(t){
+    x.fillStyle = "#0b1626"; x.fillRect(0,0,c.width,c.height);
+    const g = x.createLinearGradient(0, c.height*.6, 0, c.height);
+    g.addColorStop(0, "rgba(29,59,92,0)"); g.addColorStop(1, "rgba(29,59,92,.55)");
+    x.fillStyle = g; x.fillRect(0,0,c.width,c.height);
+    for (const s of pts){
+      x.globalAlpha = .35 + .45*Math.sin(t/900 + s.p);
+      x.fillStyle = "#f6ecd6"; x.beginPath(); x.arc(s.x, s.y, s.r, 0, 6.28); x.fill();
+    }
+    x.globalAlpha = 1; requestAnimationFrame(loop);
+  })(0);
+})();
+
+/* ---------- 彩带 ---------- */
+function confetti(n = 160){
+  const c = $("#confetti"), x = c.getContext("2d");
+  c.width = innerWidth*devicePixelRatio; c.height = innerHeight*devicePixelRatio;
+  const colors = ["#ffb347","#f6ecd6","#7fb2c9","#ff7a3d","#d9a441","#b6dbe8"];
+  const ps = Array.from({length:n}, () => ({
+    x: c.width/2 + (Math.random()-.5)*c.width*.3, y: c.height*.55,
+    vx: (Math.random()-.5)*16*devicePixelRatio, vy: -(Math.random()*16+8)*devicePixelRatio,
+    w: (Math.random()*6+4)*devicePixelRatio, h: (Math.random()*10+5)*devicePixelRatio,
+    r: Math.random()*6.28, vr: (Math.random()-.5)*.3, col: colors[Math.floor(Math.random()*colors.length)]
+  }));
+  let frames = 0;
+  (function loop(){
+    x.clearRect(0,0,c.width,c.height);
+    for (const p of ps){
+      p.vy += .35*devicePixelRatio; p.vx *= .99; p.x += p.vx; p.y += p.vy; p.r += p.vr;
+      x.save(); x.translate(p.x,p.y); x.rotate(p.r); x.fillStyle = p.col;
+      x.fillRect(-p.w/2,-p.h/2,p.w,p.h*Math.abs(Math.cos(p.r*2))); x.restore();
+    }
+    if (++frames < 260) requestAnimationFrame(loop); else x.clearRect(0,0,c.width,c.height);
+  })();
+}
+
+/* ---------- ① 倒计时 ---------- */
+const unlockTime = new Date(CONFIG.unlockAt).getTime();
+function tick(){
+  const left = unlockTime - Date.now();
+  if (left <= 0){ show("intro"); return; }
+  const d = Math.floor(left/864e5), h = Math.floor(left/36e5)%24, m = Math.floor(left/6e4)%60, s = Math.floor(left/1e3)%60;
+  $("#cdD").textContent = d; $("#cdH").textContent = h; $("#cdM").textContent = m; $("#cdS").textContent = s;
+  setTimeout(tick, 1000);
+}
+
+/* ---------- ③ 蜡烛 ---------- */
+const SVGNS = "http://www.w3.org/2000/svg";
+let candles = [], litCount = 0, audioCtx, micStream, analyser, rafMic, lineIdx = 0;
+const candleColors = ["#f6ecd6","#ffb347","#7fb2c9","#e98b8b"];
+
+function buildCandles(){
+  const g = $("#candles"); g.innerHTML = ""; candles = [];
+  const pos = [];
+  // 上层一圈 10 根
+  for (let i = 0; i < 10; i++){
+    const a = i/10*Math.PI*2 + .3;
+    pos.push({x: 180 + 74*Math.cos(a), y: 130 + 11*Math.sin(a)});
+  }
+  // 下层前半圈 14 根
+  for (let i = 0; i < 14; i++){
+    const a = Math.PI*(.1 + .8*i/13);
+    pos.push({x: 180 + 122*Math.cos(a), y: 200 + 17*Math.sin(a) + 4});
+  }
+  pos.sort((a,b) => a.y - b.y);
+  pos.forEach((p, i) => {
+    const el = document.createElementNS(SVGNS, "g");
+    el.setAttribute("class", "candle");
+    el.setAttribute("transform", `translate(${p.x.toFixed(1)},${p.y.toFixed(1)})`);
+    const col = candleColors[i % candleColors.length];
+    el.innerHTML = `
+      <circle class="glow" cx="0" cy="-44" r="26" fill="url(#gGlow)"/>
+      <rect x="-3.2" y="-32" width="6.4" height="32" rx="1.5" fill="${col}"/>
+      <path d="M-3.2 -26 l6.4 -4 M-3.2 -18 l6.4 -4 M-3.2 -10 l6.4 -4" stroke="rgba(0,0,0,.15)" stroke-width="1.5"/>
+      <line x1="0" y1="-32" x2="0" y2="-36" stroke="#3a2a1c" stroke-width="1.2"/>
+      <path class="flame" d="M0,-52 C5,-45 5.5,-39 0,-35 C-5.5,-39 -5,-45 0,-52Z" fill="url(#gFlame)"/>
+      <rect x="-12" y="-58" width="24" height="60" fill="transparent"/>`;
+    el.addEventListener("pointerdown", () => blowOut(el));
+    g.appendChild(el); candles.push(el);
+  });
+  litCount = candles.length; updateCount();
+  $("#cake").className = "screen active lit";
+}
+
+function blowOut(el){
+  if (el.classList.contains("out")) return;
+  el.classList.add("out"); litCount--;
+  // 冒一缕烟
+  for (let k = 0; k < 3; k++){
+    const s = document.createElementNS(SVGNS, "circle");
+    s.setAttribute("class", "smoke"); s.setAttribute("cx", 0); s.setAttribute("cy", -38); s.setAttribute("r", 3);
+    s.style.setProperty("--dx", (Math.random()*20-10) + "px");
+    s.style.animationDelay = (k*.15) + "s";
+    s.style.transformBox = "fill-box"; s.style.transformOrigin = "center";
+    el.appendChild(s); setTimeout(() => s.remove(), 2400);
+  }
+  if (navigator.vibrate) navigator.vibrate(12);
+  updateCount();
+  if (litCount > 0 && litCount % 6 === 0){
+    $("#cakeMsg").textContent = CONFIG.cakeLines[lineIdx++ % CONFIG.cakeLines.length];
+  }
+  if (litCount === 0) allOut();
+}
+function updateCount(){
+  $("#candleCount").textContent = `${litCount} / ${candles.length}`;
+  const cake = $("#cake");
+  if (litCount > 0) cake.style.filter = `brightness(${.55 + .45*litCount/candles.length})`;
+}
+
+async function startMic(){
+  try{
+    micStream = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation:false, noiseSuppression:false, autoGainControl:false}});
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const src = audioCtx.createMediaStreamSource(micStream);
+    analyser = audioCtx.createAnalyser(); analyser.fftSize = 1024; src.connect(analyser);
+    $("#micBtn").style.display = "none"; $("#meter").style.display = "block";
+    $("#cakeHint").textContent = "对着麦克风「呼——」地吹";
+    const buf = new Uint8Array(analyser.fftSize); let energy = 0;
+    // 前 40 帧（约 0.7 秒）先测环境噪音，自动定一个门槛，不同手机/电脑都能用
+    let calib = 0, calibN = 0, threshold = 0.03;
+    (function loop(){
+      analyser.getByteTimeDomainData(buf);
+      let sum = 0; for (const v of buf){ const d = (v-128)/128; sum += d*d; }
+      const rms = Math.sqrt(sum/buf.length);
+      if (calibN < 40){
+        calib += rms; calibN++;
+        if (calibN === 40) threshold = Math.min(0.06, Math.max(0.012, (calib/40) * 2.5));
+      }
+      $("#meterBar").style.width = Math.min(100, rms/threshold*35) + "%";
+      if (calibN >= 40 && rms > threshold){
+        energy += rms / threshold;          // 吹得越用力灭得越快
+        while (energy > 6 && litCount > 0){
+          energy -= 6;
+          const lit = candles.filter(c => !c.classList.contains("out"));
+          blowOut(lit[Math.floor(Math.random()*lit.length)]);
+        }
+      } else energy = Math.max(0, energy - .3);
+      if (litCount > 0) rafMic = requestAnimationFrame(loop);
+    })();
+  } catch(e){
+    $("#micBtn").style.display = "none";
+    if (/MicroMessenger/i.test(navigator.userAgent)){
+      $("#cakeHint").innerHTML = "微信里用不了麦克风 🥲<br>点右上角「···」→ 在浏览器打开，就能吹气了<br>（或者直接点蜡烛也行）";
+    } else {
+      $("#cakeHint").textContent = "没拿到麦克风也没关系：点蜡烛就能吹灭";
+    }
+  }
+}
+function stopMic(){
+  cancelAnimationFrame(rafMic);
+  if (micStream) micStream.getTracks().forEach(t => t.stop());
+  micStream = null;
+}
+
+function allOut(){
+  stopMic();
+  const cake = $("#cake");
+  cake.style.filter = "brightness(.35)";
+  $("#cakeMsg").textContent = "";
+  $("#meter").style.display = "none"; $("#micBtn").style.display = "none"; $("#lazyBtn").style.display = "none"; $("#cakeHint").textContent = "";
+  setTimeout(() => {
+    cake.style.filter = ""; cake.className = "screen active party";
+    $("#cakeMsg").textContent = CONFIG.cakeDone + " " + CONFIG.name;
+    confetti();
+    if (CONFIG.music){ try{ new Audio(CONFIG.music).play(); }catch(e){} }
+    setTimeout(() => { $("#toCabinet").style.display = "inline-block"; }, 1600);
+  }, 900);
+}
+
+/* ---------- ④ 抽屉 ---------- */
+const STORE = "bday24-opened";
+let opened = new Set();
+try{ opened = new Set(JSON.parse(localStorage.getItem(STORE) || "[]")); }catch(e){}
+function save(){ try{ localStorage.setItem(STORE, JSON.stringify([...opened])); }catch(e){} }
+
+function buildCabinet(){
+  const grid = $("#grid"); grid.innerHTML = "";
+  CONFIG.drawers.forEach((d, i) => {
+    const b = document.createElement("button");
+    b.className = "drawer" + (opened.has(i) ? " opened" : "");
+    b.innerHTML = `<div class="label"><b>${i+1}</b> 岁</div><div class="handle"></div>`;
+    b.onclick = () => openDrawer(i, b);
+    grid.appendChild(b);
+  });
+  const f = document.createElement("button");
+  f.className = "drawer final"; f.id = "finalDrawer";
+  f.innerHTML = `<div class="label"><b>24</b> 岁</div><div class="lock">🔒</div>`;
+  f.onclick = () => {
+    const left = CONFIG.drawers.length - opened.size;
+    if (left > 0){ f.classList.remove("shake"); void f.offsetWidth; f.classList.add("shake"); toast(`还差 ${left} 个抽屉没打开`); }
+    else openLetter();
+  };
+  grid.appendChild(f);
+  updateProgress();
+}
+function updateProgress(){
+  const total = CONFIG.drawers.length;
+  $("#progress").textContent = `${opened.size} / ${total}`;
+  const f = $("#finalDrawer");
+  if (f && opened.size >= total && !f.classList.contains("unlocked")){
+    f.classList.add("unlocked");
+    toast("最后一个抽屉，打开了");
+  }
+}
+
+function openDrawer(i, btn){
+  btn.classList.add("pull");
+  setTimeout(() => {
+    btn.classList.remove("pull");
+    const d = CONFIG.drawers[i];
+    const card = $("#card");
+    let html = `<div class="year">— ${i+1} 岁 —</div>`;
+    const pics = d.photos || (d.photo ? [d.photo] : []);
+    pics.forEach((src, k) => {
+      html += `<img class="photo" style="transform:rotate(${k % 2 ? 1.4 : -1.2}deg)" src="${src}" alt="" onerror="this.outerHTML='<div class=ph>照片放这里<br>${src}</div>'">`;
+    });
+    if (d.text) html += `<div class="text">${d.text}</div>`;
+    if (d.type === "rx"){
+      html += `<div class="rx" style="margin-top:${d.text ? 18 : 0}px">
+        <div class="hd"><b>处 方 笺</b><span>2026.12.14</span></div>
+        <div>患者：${CONFIG.name}　　年龄：23 → 24</div>
+        <div>诊断：${d.diagnosis}</div>
+        <div class="sym">Rx</div>
+        <ul>${d.items.map(([a,b]) => `<li><span>${a}</span><span>${b}</span></li>`).join("")}</ul>
+        <div>${d.note}</div>
+        <div class="sign">医师：${CONFIG.from}<span class="stamp">已签</span></div>
+      </div>`;
+    }
+    html += `<button class="close" id="closeCard">关上抽屉</button>`;
+    card.innerHTML = html; card.scrollTop = 0;
+    $("#modal").classList.add("show");
+    $("#closeCard").onclick = closeModal;
+    if (!opened.has(i)){ opened.add(i); save(); btn.classList.add("opened"); }
+  }, 260);
+}
+function closeModal(){
+  $("#modal").classList.remove("show");
+  setTimeout(updateProgress, 300);
+}
+$("#modal").addEventListener("click", e => { if (e.target.id === "modal") closeModal(); });
+
+/* ---------- ⑤ 信 ---------- */
+let typing;
+function openLetter(){
+  show("letter");
+  const el = $("#letterText"), text = fill(CONFIG.letter);
+  const lp = $("#letterPhoto");
+  if (CONFIG.letterPhoto){ lp.src = CONFIG.letterPhoto; lp.style.display = "block"; lp.onerror = () => lp.style.display = "none"; }
+  $("#letterAfter").classList.remove("show");
+  el.innerHTML = ""; let i = 0; clearTimeout(typing);
+  const span = document.createElement("span"), cur = document.createElement("span");
+  cur.className = "cursor"; el.append(span, cur);
+  const finish = () => { clearTimeout(typing); span.textContent = text; cur.remove(); $("#letterAfter").classList.add("show"); };
+  $("#paper").onclick = () => { if (i < text.length){ i = text.length; finish(); } };
+  (function step(){
+    if (i >= text.length){ finish(); return; }
+    span.textContent += text[i];
+    const ch = text[i++];
+    $("#paper").scrollTop = $("#paper").scrollHeight;
+    typing = setTimeout(step, ch === "\n" ? 260 : "，。：".includes(ch) ? 320 : 85);
+  })();
+}
+
+/* ---------- 按钮 ---------- */
+$("#introName").textContent = CONFIG.name;
+$("#startBtn").onclick = () => { show("cake"); buildCandles(); $("#cakeMsg").textContent = CONFIG.cakeLines[0]; lineIdx = 1;
+  $("#micBtn").style.display = "inline-block"; $("#lazyBtn").style.display = "inline-block"; $("#toCabinet").style.display = "none"; $("#cakeHint").textContent = "也可以直接点蜡烛，一根根吹灭"; };
+$("#micBtn").onclick = startMic;
+$("#lazyBtn").onclick = () => {
+  $("#lazyBtn").style.display = "none";
+  const lit = candles.filter(c => !c.classList.contains("out"));
+  lit.forEach((c, k) => setTimeout(() => blowOut(c), k * 60));   // 一根接一根快速熄灭，有个小动画
+};
+$("#toCabinet").onclick = () => { buildCabinet(); show("cabinet"); };
+$("#replayBtn").onclick = () => $("#startBtn").click();
+$("#backBtn").onclick = () => { buildCabinet(); show("cabinet"); };
+
+/* ---------- 启动 ---------- */
+if (params.has("reset")){ try{ localStorage.removeItem(STORE); }catch(e){} opened = new Set(); }
+if (PREVIEW || Date.now() >= unlockTime) show("intro"); else { show("lock"); tick(); }
+</script>
+</body>
+</html>
